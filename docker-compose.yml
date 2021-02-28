@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  web:
+    image: rastasheep/ubuntu-sshd:18.04
+    ports:
+      - "8088:8080"
+      - "22"
+    volumes:
+      - /code
