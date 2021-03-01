@@ -3,7 +3,9 @@ package webserver;
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.util.Map;
 
+import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
@@ -41,14 +43,45 @@ public class RequestHandler extends Thread {
 
             DataOutputStream dos = new DataOutputStream(out);
             byte[] body = "Hello Peter".getBytes();
-            if (requestUrl != null && !requestUrl.equals("/")) {
+            if (isHtmlFileRequestUrl(requestUrl)) {
                 body = HttpRequestUtils.readDataFromUrl(requestUrl);
             }
+            handleCreateUserFromGetRequest(requestUrl);
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private void handleCreateUserFromGetRequest(String requestUrl) {
+        if (isUserCreateUrl(requestUrl)) {
+            String params = getQueryStringFromUrl(requestUrl);
+            Map<String,String> paramsMap = HttpRequestUtils.parseQueryString(params);
+            User user = newUserFromParamsMap(paramsMap);
+            log.debug("user : {}", user.toString());
+        }
+    }
+
+    private User newUserFromParamsMap(Map<String, String> paramsMap) {
+        return new User(paramsMap.get("userId"),
+                paramsMap.get("password"),
+                paramsMap.get("name"),
+                paramsMap.get("email"));
+    }
+
+    private String getQueryStringFromUrl(String requestUrl) {
+        int index = requestUrl.indexOf("?");
+        String requestPath = requestUrl.substring(0, index);
+        return requestUrl.substring(index+1);
+    }
+
+    private boolean isUserCreateUrl(String requestUrl) {
+        return requestUrl != null && requestUrl.contains("/user/create");
+    }
+
+    private boolean isHtmlFileRequestUrl(String requestUrl) {
+        return requestUrl != null && !requestUrl.equals("/") && requestUrl.indexOf(".html") > 0;
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
