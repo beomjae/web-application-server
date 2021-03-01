@@ -3,6 +3,9 @@ package util;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
 
 import org.junit.Test;
@@ -69,5 +72,31 @@ public class HttpRequestUtilsTest {
         String header = "Content-Length: 59";
         Pair pair = HttpRequestUtils.parseHeader(header);
         assertThat(pair, is(new Pair("Content-Length", "59")));
+    }
+
+    @Test
+    public void testIsURLRequest() {
+        assertTrue(HttpRequestUtils.isURLRequest("GET /index.html HTTP/1.1"));
+        assertTrue(HttpRequestUtils.isURLRequest("POST /index.html HTTP/1.1"));
+        assertTrue(HttpRequestUtils.isURLRequest("PUT /index.html HTTP/1.1"));
+        assertTrue(HttpRequestUtils.isURLRequest("DELETE /index.html HTTP/1.1"));
+        assertFalse(HttpRequestUtils.isURLRequest("Host: localhost:8080"));
+        assertFalse(HttpRequestUtils.isURLRequest("Connection: keep-alive"));
+        assertFalse(HttpRequestUtils.isURLRequest("Cache-Control: max-age=0"));
+    }
+
+    @Test
+    public void testRequestURL() {
+        assertEquals("/index.html", HttpRequestUtils.getRequestUrl("GET /index.html HTTP/1.1"));
+        assertEquals("/favicon.ico", HttpRequestUtils.getRequestUrl("GET /favicon.ico HTTP/1.1"));
+        assertEquals("/", HttpRequestUtils.getRequestUrl("GET / HTTP/1.1"));
+    }
+
+    @Test
+    public void testReadDataFromUrl() throws IOException {
+        assertArrayEquals(Files.readAllBytes(new File("./webapp/index.html" ).toPath()),
+                HttpRequestUtils.readDataFromUrl("/index.html"));
+        assertArrayEquals(Files.readAllBytes(new File("./webapp/favicon.ico" ).toPath()),
+                HttpRequestUtils.readDataFromUrl("/favicon.ico"));
     }
 }

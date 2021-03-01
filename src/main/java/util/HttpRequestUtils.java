@@ -1,5 +1,8 @@
 package util;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,6 +27,23 @@ public class HttpRequestUtils {
      */
     public static Map<String, String> parseCookies(String cookies) {
         return parseValues(cookies, ";");
+    }
+
+    public static boolean isURLRequest(String line) {
+        String[] tokens = line.split(" ");
+        if(tokens[0] != null) {
+            return tokens[0].equals("GET") || tokens[0].equals("POST") || tokens[0].equals("PUT") || tokens[0].equals("DELETE");
+        }
+        return false;
+    }
+
+    public static String getRequestUrl(String line) {
+        String[] tokens = line.split(" ");
+        return tokens[1];
+    }
+
+    public static byte[] readDataFromUrl(String requestUrl) throws IOException {
+        return Files.readAllBytes(new File("./webapp" + requestUrl).toPath());
     }
 
     private static Map<String, String> parseValues(String values, String separator) {
