@@ -37,6 +37,11 @@ public class HttpRequestUtils {
         return false;
     }
 
+    public static String getRequestMethod(String line) {
+        String[] tokens = line.split(" ");
+        return tokens[0];
+    }
+
     public static String getRequestUrl(String line) {
         String[] tokens = line.split(" ");
         return tokens[1];

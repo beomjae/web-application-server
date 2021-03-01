@@ -86,6 +86,14 @@ public class HttpRequestUtilsTest {
     }
 
     @Test
+    public void testGetRequestMethod() {
+        assertEquals("GET", HttpRequestUtils.getRequestMethod("GET /index.html HTTP/1.1"));
+        assertEquals("POST", HttpRequestUtils.getRequestMethod("POST /index.html HTTP/1.1"));
+        assertEquals("PUT", HttpRequestUtils.getRequestMethod("PUT /index.html HTTP/1.1"));
+        assertEquals("DELETE", HttpRequestUtils.getRequestMethod("DELETE /index.html HTTP/1.1"));
+    }
+
+    @Test
     public void testRequestURL() {
         assertEquals("/index.html", HttpRequestUtils.getRequestUrl("GET /index.html HTTP/1.1"));
         assertEquals("/favicon.ico", HttpRequestUtils.getRequestUrl("GET /favicon.ico HTTP/1.1"));
@@ -99,4 +107,6 @@ public class HttpRequestUtilsTest {
         assertArrayEquals(Files.readAllBytes(new File("./webapp/favicon.ico" ).toPath()),
                 HttpRequestUtils.readDataFromUrl("/favicon.ico"));
     }
+
+
 }

@@ -9,6 +9,7 @@ import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -29,6 +30,8 @@ public class RequestHandler extends Thread {
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             String line;
             String requestUrl = null;
+            String requestMethod = null;
+            int contentLength = 0;
             while (!"".equals(line = bufferedReader.readLine())) {
                 log.debug(line);
                 if (line == null) {
@@ -36,17 +39,32 @@ public class RequestHandler extends Thread {
                 }
 
                 if (HttpRequestUtils.isURLRequest(line)) {
+                    requestMethod = HttpRequestUtils.getRequestMethod(line);
                     requestUrl = HttpRequestUtils.getRequestUrl(line);
                     log.debug("Request URL : {}", requestUrl);
                 }
+
+                HttpRequestUtils.Pair header = HttpRequestUtils.parseHeader(line);
+                if(header != null && header.getKey().equals("Content-Length")) {
+                    contentLength = Integer.parseInt(header.getValue());
+                }
             }
 
-            DataOutputStream dos = new DataOutputStream(out);
+            String requestBody = getRequestBody(bufferedReader, contentLength);
+            log.debug("requestBody : {}", requestBody);
+
             byte[] body = "Hello Peter".getBytes();
             if (isHtmlFileRequestUrl(requestUrl)) {
                 body = HttpRequestUtils.readDataFromUrl(requestUrl);
             }
-            handleCreateUserFromGetRequest(requestUrl);
+            if (isGetUserCreateUrl(requestMethod, requestUrl)) {
+                handleCreateUserFromGetRequest(requestUrl);
+            }
+            if (isPostUserCreateUrl(requestMethod, requestUrl)) {
+                handleCreateUserFromPostRequest(requestBody);
+            }
+
+            DataOutputStream dos = new DataOutputStream(out);
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
@@ -54,13 +72,31 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private void handleCreateUserFromGetRequest(String requestUrl) {
-        if (isUserCreateUrl(requestUrl)) {
-            String params = getQueryStringFromUrl(requestUrl);
-            Map<String,String> paramsMap = HttpRequestUtils.parseQueryString(params);
-            User user = newUserFromParamsMap(paramsMap);
-            log.debug("user : {}", user.toString());
+    private void handleCreateUserFromPostRequest(String requestBody) {
+        Map<String,String> paramsMap = HttpRequestUtils.parseQueryString(requestBody);
+        User user = newUserFromParamsMap(paramsMap);
+        log.debug("user : {}", user.toString());
+    }
+
+    private boolean isPostUserCreateUrl(String requestMethod, String requestUrl) {
+        return requestMethod != null
+                && requestUrl != null
+                && requestMethod.equals("POST")
+                && requestUrl.equals("/user/create");
+    }
+
+    private String getRequestBody(BufferedReader bufferedReader, int contentLength) throws IOException {
+        if(contentLength > 0) {
+            return IOUtils.readData(bufferedReader, contentLength);
         }
+        return null;
+    }
+
+    private void handleCreateUserFromGetRequest(String requestUrl) {
+        String params = getQueryStringFromUrl(requestUrl);
+        Map<String,String> paramsMap = HttpRequestUtils.parseQueryString(params);
+        User user = newUserFromParamsMap(paramsMap);
+        log.debug("user : {}", user.toString());
     }
 
     private User newUserFromParamsMap(Map<String, String> paramsMap) {
@@ -76,8 +112,11 @@ public class RequestHandler extends Thread {
         return requestUrl.substring(index+1);
     }
 
-    private boolean isUserCreateUrl(String requestUrl) {
-        return requestUrl != null && requestUrl.contains("/user/create");
+    private boolean isGetUserCreateUrl(String requestMethod, String requestUrl) {
+        return requestMethod != null
+                && requestMethod.equals("GET")
+                && requestUrl != null
+                && requestUrl.contains("/user/create");
     }
 
     private boolean isHtmlFileRequestUrl(String requestUrl) {
